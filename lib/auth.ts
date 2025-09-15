@@ -1,4 +1,5 @@
 "use client"
+import { apiClient } from "./api"
 
 const TOKEN_KEY = "auth_token"
 const USER_KEY = "auth_user"
@@ -40,7 +41,8 @@ export async function login(
 
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user)) // ✅ save user
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+      apiClient.setToken(data.token) // ✅ save user
       dispatchAuthChanged() // 🔹 Notify Navbar
       return { success: true }
     }
