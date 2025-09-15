@@ -7,7 +7,7 @@ export function Footer() {
   const handleDocumentationDownload = () => {
     const link = document.createElement("a")
     link.href = "/docs/TalkToText-Pro-Documentation.pdf"
-    link.download = "TalkToText-Pro-Documentation.pdf"
+    link.download = "TalktotextPro-Documentation.pdf"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -68,7 +68,14 @@ export function Footer() {
             <h3 className="font-semibold">Connect</h3>
             <div className="flex space-x-4">
               <Link
-                href="https://github.com"
+                href="https://github.com/huzaifaair/talktotext-frontend"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="GitHub"
+              >
+                <Github className="h-5 w-5" />
+              </Link>
+              <Link
+                href="https://github.com/huzaifaair/talktotext-backend"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="GitHub"
               >
