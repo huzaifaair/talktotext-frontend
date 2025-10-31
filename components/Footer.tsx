@@ -1,12 +1,30 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Github, Download } from "lucide-react"
 
 export function Footer() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  // ✅ Detect login status from localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token") // match your auth.ts key
+    setIsLoggedIn(!!token)
+
+    // ✅ Recheck on login/logout event
+    const handleAuthChange = () => {
+      const newToken = localStorage.getItem("auth_token")
+      setIsLoggedIn(!!newToken)
+    }
+
+    window.addEventListener("authChanged", handleAuthChange)
+    return () => window.removeEventListener("authChanged", handleAuthChange)
+  }, [])
+
   const handleDocumentationDownload = () => {
     const link = document.createElement("a")
-    link.href = "/docs/TalkToText-Pro-Documentation.pdf"
+    link.href = "/docs/TalktotextPro-Documentation.pdf"
     link.download = "TalktotextPro-Documentation.pdf"
     document.body.appendChild(link)
     link.click()
@@ -39,11 +57,15 @@ export function Footer() {
                   Upload Files
                 </Link>
               </li>
-              <li>
-                <Link href="/history" className="text-muted-foreground hover:text-primary transition-colors">
-                  Meeting History
-                </Link>
-              </li>
+
+              {/* ✅ Show only if logged in */}
+              {isLoggedIn && (
+                <li>
+                  <Link href="/history" className="text-muted-foreground hover:text-primary transition-colors">
+                    Meeting History
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -70,14 +92,14 @@ export function Footer() {
               <Link
                 href="https://github.com/huzaifaair/talktotext-frontend"
                 className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="GitHub"
+                aria-label="GitHub Frontend"
               >
                 <Github className="h-5 w-5" />
               </Link>
               <Link
                 href="https://github.com/huzaifaair/talktotext-backend"
                 className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="GitHub"
+                aria-label="GitHub Backend"
               >
                 <Github className="h-5 w-5" />
               </Link>

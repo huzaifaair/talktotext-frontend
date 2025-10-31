@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,28 @@ const stats = [
 ]
 
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+
+    // ✅ your JWT key is "auth_token"
+    const token = localStorage.getItem("auth_token")
+    setIsLoggedIn(!!token)
+
+    // 🔁 Optional — listen for global login/logout (authChanged event from api/auth.ts)
+    const handleAuthChange = () => {
+      const updatedToken = localStorage.getItem("auth_token")
+      setIsLoggedIn(!!updatedToken)
+    }
+
+    window.addEventListener("authChanged", handleAuthChange)
+    return () => window.removeEventListener("authChanged", handleAuthChange)
+  }, [])
+
+  if (!mounted) return null // avoid hydration mismatch
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
@@ -50,17 +73,24 @@ export default function HomePage() {
           Transform Meetings into
           <span className="text-primary block">Actionable Insights</span>
         </h1>
+
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
-          AI-powered transcription and analysis that turns your meeting recordings into structured notes, summaries, and
-          action items in minutes.
+          AI-powered transcription and analysis that turns your meeting recordings into structured notes, summaries,
+          and action items in minutes.
         </p>
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Always visible */}
           <Button size="lg" className="neon-glow text-lg px-8" asChild>
             <Link href="/upload">Start Processing</Link>
           </Button>
-          <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent" asChild>
-            <Link href="/auth/register">Create Account</Link>
-          </Button>
+
+          {/* ✅ Only show if NOT logged in */}
+          {!isLoggedIn && (
+            <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent" asChild>
+              <Link href="/auth/register">Create Account</Link>
+            </Button>
+          )}
         </div>
       </motion.section>
 

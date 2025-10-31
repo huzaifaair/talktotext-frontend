@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { apiClient } from "@/lib/api"   // ✅ import real API client
+import { apiClient } from "@/lib/api"
 
 export default function NotePage() {
   const params = useParams()
@@ -17,6 +17,13 @@ export default function NotePage() {
   const [note, setNote] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  // ✅ Detect login status
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token")
+    setIsLoggedIn(!!token)
+  }, [])
 
   useEffect(() => {
     const fetchNote = async () => {
@@ -24,13 +31,13 @@ export default function NotePage() {
         setIsLoading(true)
         setError(null)
 
-        const response = await apiClient.getNote(noteId)   // ✅ real backend call
+        const response = await apiClient.getNote(noteId)
         if (response.error) {
           setError(response.error)
           return
         }
 
-        setNote(response.data)  // ✅ real note set
+        setNote(response.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load note")
       } finally {
@@ -38,17 +45,15 @@ export default function NotePage() {
       }
     }
 
-    if (noteId) {
-      fetchNote()
-    }
+    if (noteId) fetchNote()
   }, [noteId])
 
-   if (isLoading) {
+  // 🌀 Loading state
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            {/* Loading skeleton */}
             <Card>
               <CardContent className="pt-6">
                 <div className="animate-pulse space-y-4">
@@ -77,6 +82,7 @@ export default function NotePage() {
     )
   }
 
+  // ❌ Error state
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -87,9 +93,9 @@ export default function NotePage() {
           </Alert>
           <div className="mt-6 text-center">
             <Button asChild>
-              <Link href="/history">
+              <Link href={isLoggedIn ? "/history" : "/upload"}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to History
+                {isLoggedIn ? "Back to History" : "Back to Upload"}
               </Link>
             </Button>
           </div>
@@ -98,6 +104,7 @@ export default function NotePage() {
     )
   }
 
+  // 🪶 Note not found
   if (!note) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -107,9 +114,9 @@ export default function NotePage() {
             The requested meeting note could not be found.
           </p>
           <Button asChild>
-            <Link href="/history">
+            <Link href={isLoggedIn ? "/history" : "/upload"}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to History
+              {isLoggedIn ? "Back to History" : "Back to Upload"}
             </Link>
           </Button>
         </div>
@@ -117,18 +124,19 @@ export default function NotePage() {
     )
   }
 
-  // ✅ Real NotesViewer render with backend note
+  // ✅ Show correct button depending on login
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild>
-          <Link href="/history">
+          <Link href={isLoggedIn ? "/history" : "/upload"}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to History
+            {isLoggedIn ? "Back to History" : "Back to Upload"}
           </Link>
         </Button>
       </div>
-      <NotesViewer note={note} />  {/* <-- real note */}
+
+      <NotesViewer note={note} />
     </div>
   )
 }

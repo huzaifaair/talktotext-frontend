@@ -32,58 +32,75 @@ export function useUpload() {
     error: null,
   })
 
-const uploadFile = useCallback(
-  async (file: File | null, url: string | null, options: UploadOptions) => {
-    if (!file && !url) {
-      setState((prev) => ({ ...prev, error: "Please provide a file or URL" }))
-      return { error: "Please provide a file or URL" }
-    }
+  const uploadFile = useCallback(
+    async (file: File | Blob | null, url: string | null, options: UploadOptions) => {
+      try {
+        if (!file && !url) {
+          setState((prev) => ({ ...prev, error: "Please provide a file or URL" }))
+          return { error: "Please provide a file or URL" }
+        }
 
-    setState((prev) => ({
-      ...prev,
-      isUploading: true,
-      error: null,
-      progress: { stage: "uploading", percent: 0 },
-    }))
+        setState((prev) => ({
+          ...prev,
+          isUploading: true,
+          error: null,
+          progress: { stage: "uploading", percent: 0 },
+        }))
 
-    const formData = new FormData()
-    if (file) formData.append("file", file)
-    if (url) formData.append("url", url)
-    formData.append("language", options.language)
-    formData.append("background", options.background.toString())
-    formData.append("extractDuration", options.extractDuration.toString())
+        const formData = new FormData()
 
-    const response = await apiClient.uploadFile(formData)
+        // ✅ support File or Blob
+        if (file instanceof Blob) {
+          const recordedFile = file instanceof File ? file : new File([file], "recording.webm", { type: "audio/webm" })
+          formData.append("file", recordedFile)
+        } else if (file) {
+          formData.append("file", file)
+        }
 
-    if (response.error) {
-      setState((prev) => ({
-        ...prev,
-        isUploading: false,
-        error: response.error || "Upload failed",
-      }))
-      return response
-    }
+        if (url) formData.append("url", url)
+        formData.append("language", options.language)
+        formData.append("background", options.background.toString())
+        formData.append("extractDuration", options.extractDuration.toString())
 
-    if (options.background && response.data?.upload_id) {
-      setState((prev) => ({
-        ...prev,
-        uploadId: response.data.upload_id,
-        progress: { stage: "uploaded", percent: 10 },
-      }))
-    } else if (response.data?.note_id) {
-      setState((prev) => ({
-        ...prev,
-        isUploading: false,
-        noteId: response.data.note_id,
-        progress: { stage: "done", percent: 100 },
-      }))
-    }
+        const response = await apiClient.uploadFile(formData)
 
-    return response // ✅ return to caller
-  },
-  []
-)
+        if (response.error) {
+          setState((prev) => ({
+            ...prev,
+            isUploading: false,
+            error: response.error || "Upload failed",
+          }))
+          return response
+        }
 
+        if (options.background && response.data?.upload_id) {
+          setState((prev) => ({
+            ...prev,
+            uploadId: response.data.upload_id,
+            progress: { stage: "uploaded", percent: 10 },
+          }))
+        } else if (response.data?.note_id) {
+          setState((prev) => ({
+            ...prev,
+            isUploading: false,
+            noteId: response.data.note_id,
+            progress: { stage: "done", percent: 100 },
+          }))
+        }
+
+        return response
+      } catch (err: any) {
+        console.error("Upload failed:", err)
+        setState((prev) => ({
+          ...prev,
+          isUploading: false,
+          error: err?.message || "Unexpected upload error",
+        }))
+        return { error: err?.message || "Unexpected upload error" }
+      }
+    },
+    []
+  )
 
   const reset = useCallback(() => {
     setState({

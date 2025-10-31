@@ -119,7 +119,7 @@ export function Navbar() {
             {loggedIn ? (
               <>
                 <NavLink href="/" isActive={pathname === "/"}>
-                  Dashboard
+                  Home
                 </NavLink>
                 <NavLink href="/upload" isActive={pathname === "/upload"}>
                   Upload
@@ -131,7 +131,7 @@ export function Navbar() {
             ) : (
               <>
                 <NavLink href="/" isActive={pathname === "/"}>
-                  Dashboard
+                  Home
                 </NavLink>
                 <NavLink href="/upload" isActive={pathname === "/upload"}>
                   Upload

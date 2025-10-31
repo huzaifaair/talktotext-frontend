@@ -1,9 +1,9 @@
+// lib/exporter.ts
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { normalizeMarkdown } from "./markdownUtils";
-import { marked } from "marked";
 
 type NoteShape = any;
 
@@ -11,44 +11,52 @@ function sanitizeFilename(name = "meeting-notes") {
   return name.replace(/[<>:"/\\|?*]+/g, "-").slice(0, 120);
 }
 
+// ---------------- DOCX EXPORT ----------------
 export async function exportNoteAsDocx(note: NoteShape) {
   const title = note.title || "Meeting Notes";
+  const content = normalizeMarkdown(note.abstract_summary || note.final_notes || "");
 
+  const lines = content.split(/\r?\n/);
   const children: Paragraph[] = [];
 
   children.push(new Paragraph({ text: title, heading: HeadingLevel.TITLE }));
+  children.push(new Paragraph({ text: note.created_at ? new Date(note.created_at).toLocaleString() : "" }));
   children.push(new Paragraph({ text: "" }));
 
-  const normalized = normalizeMarkdown(note.abstract_summary || note.final_notes || "");
-  const parsed = marked.parse(normalized).toString().split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
 
-  parsed.forEach((line: string) => {
-    if (!line.trim()) return;
-    if (line.startsWith("##")) {
-      children.push(new Paragraph({ text: line.replace(/^##+/, "").trim(), heading: HeadingLevel.HEADING_1 }));
-    } else if (line.startsWith("-")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: "• " + line.replace(/^-/, "").trim() })] }));
-    } else if (/^\d+\./.test(line)) {
-      children.push(new Paragraph({ text: line.trim() }));
+    if (/^## /.test(trimmed)) {
+      children.push(new Paragraph({ text: trimmed.replace(/^## /, "").trim(), heading: HeadingLevel.HEADING_1 }));
+    } else if (/^- /.test(trimmed)) {
+      children.push(new Paragraph({ children: [new TextRun({ text: "• " + trimmed.replace(/^- /, "").trim() })] }));
+    } else if (/^\d+\./.test(trimmed)) {
+      children.push(new Paragraph({ text: trimmed }));
     } else {
-      children.push(new Paragraph({ text: line.trim() }));
+      children.push(new Paragraph({ text: trimmed }));
     }
-  });
+  }
 
   const doc = new Document({ sections: [{ children }] });
   const blob = await Packer.toBlob(doc);
   saveAs(blob, `${sanitizeFilename(title)}.docx`);
 }
 
+// ---------------- PDF EXPORT ----------------
 export async function exportNoteAsPDF(note: NoteShape) {
   const title = note.title || "Meeting Notes";
-  const normalized = normalizeMarkdown(note.abstract_summary || note.final_notes || "");
+  const content = normalizeMarkdown(note.abstract_summary || note.final_notes || "");
+  const formatted = content
+    .replace(/^## (.+)$/gm, "<h2 style='margin-top:16px;'>$1</h2>")
+    .replace(/^- (.+)$/gm, "<li>$1</li>")
+    .replace(/\n{2,}/g, "<br/><br/>");
 
   const html = `
   <div style="font-family: Arial, Helvetica, sans-serif; color: #111; width: 800px; padding: 28px;">
-    <h1 style="font-size: 22px; margin-bottom:8px;">${title}</h1>
-    <div style="color:#666; margin-bottom:12px;">${note.created_at ? new Date(note.created_at).toLocaleString() : ""}</div>
-    <div style="font-size:14px; line-height:1.6;">${normalized.replace(/\n/g, "<br/>")}</div>
+    <h1 style="font-size: 22px;">${title}</h1>
+    <div style="color:#555; margin-bottom:8px;">${note.created_at ? new Date(note.created_at).toLocaleString() : ""}</div>
+    <div style="font-size:14px; line-height:1.6;">${formatted}</div>
   </div>
   `;
 
@@ -63,28 +71,10 @@ export async function exportNoteAsPDF(note: NoteShape) {
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "pt", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-
     const imgProps = (pdf as any).getImageProperties(imgData);
     const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    let position = 0;
-    let remaining = imgHeight;
-
-    if (imgHeight <= pdfHeight) {
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
-    } else {
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      remaining -= pdfHeight;
-      position -= pdfHeight;
-      while (remaining > 0) {
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        remaining -= pdfHeight;
-        position -= pdfHeight;
-      }
-    }
-
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
     pdf.save(`${sanitizeFilename(title)}.pdf`);
   } finally {
     document.body.removeChild(wrapper);
