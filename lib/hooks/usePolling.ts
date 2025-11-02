@@ -40,18 +40,20 @@ export function usePolling(uploadId: string | null, enabled = true) {
         }
 
         const data = response.data
-        setState({
-          status: data.status,
-          noteId: data.note_id,
-          progress: data.progress,
-          error: null,
-        })
+        if (data) {
+          setState({
+            status: data.status,
+            noteId: data.note_id,
+            progress: data.progress,
+            error: null,
+          })
 
-        // Stop polling if done or failed
-        if (data.status === "done" || data.status === "failed") {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current)
-            intervalRef.current = null
+          // Stop polling if done or failed
+          if (data.status === "done" || data.status === "failed") {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current)
+              intervalRef.current = null
+            }
           }
         }
 
