@@ -75,8 +75,9 @@ export async function register(
 
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user)) // ✅ save user
-      dispatchAuthChanged() // 🔹 Notify Navbar
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+      apiClient.setToken(data.token) // ✅ ensure apiClient uses it
+      dispatchAuthChanged()
       return { success: true }
     }
 
@@ -85,6 +86,7 @@ export async function register(
     return { success: false, error: "Network error" }
   }
 }
+
 
 export function logout(): void {
   localStorage.removeItem(TOKEN_KEY)
@@ -97,3 +99,15 @@ export function getToken(): string | null {
   if (typeof window === "undefined") return null
   return localStorage.getItem(TOKEN_KEY)
 }
+
+
+// frontend/lib/auth.ts
+export function saveToken(token: string | null) {
+  if (typeof window !== "undefined") {
+    if (token) localStorage.setItem("auth_token", token)
+    else localStorage.removeItem("auth_token")
+  }
+}
+
+
+
